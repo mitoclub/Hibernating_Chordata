@@ -1,0 +1,78 @@
+---
+title: "Chordata Whole genomes data: comparisons of temperature and longevity"
+author: "Alina G. Mikhailova"
+date: "2023-10-18"
+output:    
+   html_document:
+      toc: true
+      toc_depth: 3
+      toc_float: true
+      number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
+rm(list=ls(all=TRUE))
+if (!require(caper)) install.packages("caper")
+if (!require(geiger)) install.packages("geiger")
+if (!require(ggpubr)) install.packages("ggpubr")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyr)) install.packages("tidyr")
+library(tidyr)
+library(caper)
+library(geiger)
+library(ggpubr)
+library(dplyr)
+```
+
+# Reading whole genomes database and obtaining neutral nucleotide fractions 
+
+```{r}
+sinnuccontent = read.table("../data/2derived/AllGenesCodonUsageNoOverlap.txt", header = TRUE, sep = '\t')
+sinnuccontent = sinnuccontent[sinnuccontent$Gene != 'ND6',]
+sinnuccontent = aggregate(list(sinnuccontent$NeutralA,sinnuccontent$NeutralT,sinnuccontent$NeutralG,sinnuccontent$NeutralC), by = list(sinnuccontent$Species), FUN = sum)
+names(sinnuccontent) = c('Species','NeutralA','NeutralT','NeutralG','NeutralC')
+sinnuccontent$FrT.heavy = sinnuccontent$NeutralA / (sinnuccontent$NeutralA + sinnuccontent$NeutralT + sinnuccontent$NeutralG + sinnuccontent$NeutralC)
+sinnuccontent$FrA.heavy = sinnuccontent$NeutralT / (sinnuccontent$NeutralA + sinnuccontent$NeutralT + sinnuccontent$NeutralG + sinnuccontent$NeutralC) 
+sinnuccontent$FrC.heavy = sinnuccontent$NeutralG / (sinnuccontent$NeutralA + sinnuccontent$NeutralT + sinnuccontent$NeutralG + sinnuccontent$NeutralC) 
+sinnuccontent$FrG.heavy = sinnuccontent$NeutralC / (sinnuccontent$NeutralA + sinnuccontent$NeutralT + sinnuccontent$NeutralG + sinnuccontent$NeutralC) 
+```
+
+# Reading and updating Kouptsov's table
+```{r message=FALSE}
+KT = read.table("../data/2derived/EcologyMammalianTable01_KuptsovA_ver2_Full.txt", sep='\t', header=TRUE)
+KT$FrT= NULL
+alldata = merge(sinnuccontent, KT)
+alldata$Temperature = as.numeric(gsub(",", ".", alldata$Temperature.C._White2003.2006.other.close.species))
+alldata$GenerationLength_d = as.numeric(gsub(",", ".", alldata$GenerationLength_d))
+alldata$AC.heavy = alldata$FrA.heavy+alldata$FrC.heavy
+alldata$TG.heavy = alldata$FrT.heavy+alldata$FrG.heavy
+alldata$TG_ACSkew = (alldata$TG.heavy-alldata$AC.heavy)/(alldata$AC.heavy+alldata$TG.heavy)
+```
+
+# Analyses
+## Comparison of absolute temperature and GL with neutral content
+
+```{r message=FALSE}
+summary(lm(formula = FrA.heavy ~ scale(GenerationLength_d)+scale(Temperature), data = alldata))
+summary(lm(TG_ACSkew ~ log2(Temperature)+log2(GenerationLength_d), data = alldata))
+summary(lm(TG_ACSkew ~ scale(Temperature)+scale(GenerationLength_d), data = alldata))
+```
+
+## Comparison of temp dummies with neutral content
+
+```{r message=FALSE}
+alldata$MarsMono = alldata$Mars + alldata$Mono; table(alldata$MarsMono)
+alldata$ColdSpecies = 0
+alldata[alldata$Species %in% alldata[alldata$Temperature <= mean(alldata[!is.na(alldata$Temperature),]$Temperature) & !is.na(alldata$Temperature),]$Species,]$ColdSpecies = 1; table(alldata$ColdSpecies)
+alldata$AllColdSpecies = alldata$Hib.unconfirmedHib + alldata$Daily.unconfirmedDaily + alldata$MarsMono + alldata$ColdSpecies
+alldata[alldata$AllColdSpecies > 0,]$AllColdSpecies = 1; table(alldata$AllColdSpecies)
+
+summary(lm(formula = TG_ACSkew ~ log2(GenerationLength_d)+AllColdSpecies, data = alldata))
+summary(lm(formula = FrA.heavy ~ log2(GenerationLength_d)+AllColdSpecies, data = alldata))
+
+```
+

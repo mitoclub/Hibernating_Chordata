@@ -1,0 +1,94 @@
+---
+title: "Chordata Polymorphic Data: comparisons of temperature and longevity"
+author: "Alina G. Mikhailova"
+date: "2023-10-11"
+output:    
+   html_document:
+      toc: true
+      toc_depth: 3
+      toc_float: true
+      number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
+rm(list=ls(all=TRUE))
+if (!require(caper)) install.packages("caper")
+if (!require(geiger)) install.packages("geiger")
+if (!require(ggpubr)) install.packages("ggpubr")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyr)) install.packages("tidyr")
+library(tidyr)
+library(caper)
+library(geiger)
+library(ggpubr)
+library(dplyr)
+```
+
+# Reading MutSpec DataBase and merging with taxonomy
+
+```{r}
+mutspec = read.csv('../data/2derived/internal_12_syn_mutspec_all.csv', row.names=1)
+taxa = read.table("../data/2derived/TaxaFromKostya.txt", header = T)
+AA = read.table("../data/1raw/anage_data.txt", header = TRUE, sep = '\t')
+AA$Species = paste(AA$Genus,AA$Species,sep = '_')
+AAtaxa = AA[c("Species", "Class")]
+taxa = rbind(taxa, AAtaxa)
+mutspec <- mutspec %>% separate(gene_and_species, c("Gene", "Species"), sep="__")
+mutspec = merge(mutspec, taxa, all.x = T)
+no_class = mutspec[is.na(mutspec$Class) & mutspec$Mut == "A>G" & mutspec$Gene == "Cytb" & mutspec$Mut == "T>C",]$Species
+temptc = mutspec[mutspec$Mut == "T>C",]; temptc = temptc[c("Species", "MutSpec", "Gene", "Class")]; colnames(temptc) = c("Species", "A_G.heavy", "Gene", "Class")
+tempag = mutspec[mutspec$Mut == "A>G",]; tempag = tempag[c("Species", "MutSpec", "Gene", "Class")]; colnames(tempag) = c("Species", "T_C.heavy", "Gene", "Class")
+tempmutspectcag = merge(tempag, temptc)
+
+```
+## Subset of mutspec counted by mean normalised mutspec
+```{r message=FALSE}
+meanmutspec = tempmutspectcag %>% group_by(Species, Class); meanmutspec = meanmutspec %>% summarise(T_C.heavy=mean(T_C.heavy), A_G.heavy=mean(A_G.heavy))
+```
+## Subset of mutspec counted by cytochrome b
+```{r message=FALSE}
+cytbmutspec = tempmutspectcag[tempmutspectcag$Gene == "Cytb",]
+```
+# Reading and updating Kouptsov's table
+```{r message=FALSE}
+KT = read.table("../data/2derived/EcologyMammalianTable01_KuptsovA_ver2_Full.txt", sep='\t', header=TRUE)
+alldata = merge(meanmutspec, KT)
+#alldata = merge(cytbmutspec, KT)
+alldata$Temperature = as.numeric(gsub(",", ".", alldata$Temperature.C._White2003.2006.other.close.species))
+alldata$GenerationLength_d = as.numeric(gsub(",", ".", alldata$GenerationLength_d))
+alldata = alldata[alldata$A_G.heavy > 0,]
+alldata = alldata[alldata$T_C.heavy > 0,]
+alldata$AGdivTC.heavy = alldata$A_G.heavy / alldata$T_C.heavy
+```
+
+# Analyses
+
+## Comparison of absolute temperature and GL with mutspec
+
+```{r message=FALSE}
+summary(lm(formula = A_G.heavy ~ Temperature + GenerationLength_d, data = alldata))
+summary(lm(formula = A_G.heavy ~ scale(Temperature) + scale(GenerationLength_d), data = alldata))
+summary(lm(formula = AGdivTC.heavy ~ Temperature + GenerationLength_d, data = alldata))
+summary(lm(formula = AGdivTC.heavy ~ scale(Temperature) + scale(GenerationLength_d), data = alldata))
+
+```
+
+## Comparisons of temp dummies with mutspec
+
+```{r message=FALSE}
+alldata$MarsMono = alldata$Mars + alldata$Mono; table(alldata$MarsMono)
+alldata$ColdSpecies = 0
+alldata[alldata$Species %in% alldata[alldata$Temperature <= mean(alldata[!is.na(alldata$Temperature),]$Temperature) & !is.na(alldata$Temperature),]$Species,]$ColdSpecies = 1; table(alldata$ColdSpecies)
+alldata$AllColdSpecies = alldata$Hib.unconfirmedHib + alldata$Daily.unconfirmedDaily + alldata$MarsMono + alldata$ColdSpecies
+alldata[alldata$AllColdSpecies > 0,]$AllColdSpecies = 1; table(alldata$AllColdSpecies)
+
+summary(lm(formula = AGdivTC.heavy ~ AllColdSpecies + GenerationLength_d, data = alldata))
+summary(lm(formula = AGdivTC.heavy ~ scale(GenerationLength_d), data = alldata))
+
+
+```
+
