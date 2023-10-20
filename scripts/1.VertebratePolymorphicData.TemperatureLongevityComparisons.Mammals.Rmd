@@ -50,6 +50,8 @@ tempag = mutspec[mutspec$Mut == "A>G",]; tempag = tempag[c("Species", "MutSpec",
 tempmutspectcag = merge(tempag, temptc)
 table(is.na(tempmutspectcag$Class))
 tempmutspectcag = tempmutspectcag[!is.na(tempmutspectcag$Class),]
+#write.table(unique(tempmutspectcag$Species), file = "../data/2derived/species_for_tree.txt", row.names = F, col.names = F) 
+
 ```
 
 ## Subset of mutspec counted by mean normalised mutspec of mammalia
@@ -71,9 +73,8 @@ alldata = merge(meanmutspec, KT, all = T)
 #alldata = merge(cytbmutspec, KT)
 alldata$Temperature = as.numeric(gsub(",", ".", alldata$Temperature.C._White2003.2006.other.close.species))
 alldata$GenerationLength_d = as.numeric(gsub(",", ".", alldata$GenerationLength_d))
-alldata = alldata[alldata$A_G.heavy > 0,]
-alldata = alldata[alldata$T_C.heavy > 0,]
 alldata$AGdivTC.heavy = alldata$A_G.heavy / alldata$T_C.heavy
+
 ```
 
 # Analyses
