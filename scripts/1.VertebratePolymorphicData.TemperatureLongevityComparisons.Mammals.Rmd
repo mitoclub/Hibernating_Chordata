@@ -32,31 +32,42 @@ library(dplyr)
 
 ```{r}
 mutspec = read.csv('../data/2derived/internal_12_syn_mutspec_all.csv', row.names=1)
+taxavictor = read.table('../data/1raw/Classes_from_Victor.txt', header = T)
 taxa = read.table("../data/2derived/TaxaFromKostya.txt", header = T)
 AA = read.table("../data/1raw/anage_data.txt", header = TRUE, sep = '\t')
 AA$Species = paste(AA$Genus,AA$Species,sep = '_')
 AAtaxa = AA[c("Species", "Class")]
 taxa = rbind(taxa, AAtaxa)
+taxa = rbind(taxa, taxavictor)
+length(taxa$Species)
+taxa = taxa[!duplicated(taxa$Species),]
+length(taxa$Species)
 mutspec <- mutspec %>% separate(gene_and_species, c("Gene", "Species"), sep="__")
 mutspec = merge(mutspec, taxa, all.x = T)
-no_class = mutspec[is.na(mutspec$Class) & mutspec$Mut == "A>G" & mutspec$Gene == "Cytb" & mutspec$Mut == "T>C",]$Species
+no_class = mutspec[is.na(mutspec$Class) & mutspec$Mut == "A>G" & mutspec$Gene == "Cytb" & mutspec$Mut == "T>C",]
 temptc = mutspec[mutspec$Mut == "T>C",]; temptc = temptc[c("Species", "MutSpec", "Gene", "Class")]; colnames(temptc) = c("Species", "A_G.heavy", "Gene", "Class")
 tempag = mutspec[mutspec$Mut == "A>G",]; tempag = tempag[c("Species", "MutSpec", "Gene", "Class")]; colnames(tempag) = c("Species", "T_C.heavy", "Gene", "Class")
 tempmutspectcag = merge(tempag, temptc)
-
+table(is.na(tempmutspectcag$Class))
+tempmutspectcag = tempmutspectcag[!is.na(tempmutspectcag$Class),]
 ```
-## Subset of mutspec counted by mean normalised mutspec
+
+## Subset of mutspec counted by mean normalised mutspec of mammalia
 ```{r message=FALSE}
 meanmutspec = tempmutspectcag %>% group_by(Species, Class); meanmutspec = meanmutspec %>% summarise(T_C.heavy=mean(T_C.heavy), A_G.heavy=mean(A_G.heavy))
+meanmutspec = meanmutspec[meanmutspec$Class == "Mammalia",]
 ```
+
 ## Subset of mutspec counted by cytochrome b
 ```{r message=FALSE}
 cytbmutspec = tempmutspectcag[tempmutspectcag$Gene == "Cytb",]
 ```
+
 # Reading and updating Kouptsov's table
 ```{r message=FALSE}
 KT = read.table("../data/2derived/EcologyMammalianTable01_KuptsovA_ver2_Full.txt", sep='\t', header=TRUE)
-alldata = merge(meanmutspec, KT)
+alldata = merge(meanmutspec, KT, all = T)
+#write.csv(alldata, file = "../data/2derived/EcologyMammalianTable01_KuptsovA_UPDATED.csv")
 #alldata = merge(cytbmutspec, KT)
 alldata$Temperature = as.numeric(gsub(",", ".", alldata$Temperature.C._White2003.2006.other.close.species))
 alldata$GenerationLength_d = as.numeric(gsub(",", ".", alldata$GenerationLength_d))
