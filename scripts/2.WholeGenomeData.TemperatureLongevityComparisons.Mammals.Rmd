@@ -76,3 +76,28 @@ summary(lm(formula = FrA.heavy ~ log2(GenerationLength_d)+AllColdSpecies, data =
 
 ```
 
+# PGLS analyses
+
+```{r message=FALSE}
+tree = read.tree('../data/1raw/species_for_tree.nwk')
+
+row.names(alldata) = alldata$Species
+
+tree_pruned = treedata(tree, alldata, sort=T, warnings=T)$phy 
+
+data<-as.data.frame(treedata(tree_pruned, alldata, sort=T, warnings=T)$data)
+data$Species = as.character(data$Species)
+
+data$TG_ACSkew = as.numeric(as.character(data$TG_ACSkew))
+data$Temperature = as.numeric(as.character(data$Temperature))
+data$GenerationLength_d = as.numeric(as.character(data$GenerationLength_d))
+data$AllColdSpecies = as.numeric(as.character(data$AllColdSpecies))
+
+
+data_comp <- comparative.data(tree_pruned, data[, c('Species', 'TG_ACSkew',
+                                                    'GenerationLength_d', 'Temperature', 'AllColdSpecies')], Species, vcv=TRUE)
+
+summary(pgls(TG_ACSkew ~ scale(Temperature) + scale(GenerationLength_d), data_comp, lambda="ML"))
+summary(pgls(TG_ACSkew ~ AllColdSpecies + scale(GenerationLength_d), data_comp, lambda="ML"))
+summary(pgls(TG_ACSkew ~ scale(GenerationLength_d), data_comp, lambda="ML"))
+```
