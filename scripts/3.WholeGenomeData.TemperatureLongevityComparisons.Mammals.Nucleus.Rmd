@@ -1,0 +1,80 @@
+---
+title: "Chordata Whole genomes data of nucleus"
+author: "Alina G. Mikhailova"
+date: "2023-11-2"
+output:    
+   html_document:
+      toc: true
+      toc_depth: 3
+      toc_float: true
+      number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
+rm(list=ls(all=TRUE))
+if (!require(caper)) install.packages("caper")
+if (!require(geiger)) install.packages("geiger")
+if (!require(ggpubr)) install.packages("ggpubr")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyr)) install.packages("tidyr")
+library(tidyr)
+library(caper)
+library(geiger)
+library(ggpubr)
+library(dplyr)
+```
+
+# Reading whole genomes database and obtaining neutral nucleotide fractions in nucleus
+
+```{r}
+data = read.csv("../data/1raw/codon_usage_chordata.csv")
+data$NeutralA = as.numeric(data$GCA..Ala.) + as.numeric(data$CGA..Arg.) + as.numeric(data$GGA..Gly.) + as.numeric(data$CTA..Leu.)  + as.numeric(data$CTA..Leu.)  + as.numeric(data$CCA..Pro.)  + as.numeric(data$TCA..Ser.)  + as.numeric(data$ACA..Thr.) + as.numeric(data$GTA..Val.)
+data$NeutralT = as.numeric(data$GCT..Ala.) + as.numeric(data$CGT..Arg.) + as.numeric(data$GGT..Gly.) + as.numeric(data$CTT..Leu.)  + as.numeric(data$CTT..Leu.)  + as.numeric(data$CCT..Pro.)  + as.numeric(data$TCT..Ser.)  + as.numeric(data$ACT..Thr.) + as.numeric(data$GTT..Val.)
+data$NeutralG = as.numeric(data$GCG..Ala.) + as.numeric(data$CGG..Arg.) + as.numeric(data$GGG..Gly.) + as.numeric(data$CTG..Leu.)  + as.numeric(data$CTG..Leu.)  + as.numeric(data$CCG..Pro.)  + as.numeric(data$TCG..Ser.)  + as.numeric(data$ACG..Thr.) + as.numeric(data$GTG..Val.)
+data$NeutralC = as.numeric(data$GCC..Ala.) + as.numeric(data$CGC..Arg.) + as.numeric(data$GGC..Gly.) + as.numeric(data$CTC..Leu.)  + as.numeric(data$CTC..Leu.)  + as.numeric(data$CCC..Pro.)  + as.numeric(data$TCC..Ser.)  + as.numeric(data$ACC..Thr.) + as.numeric(data$GTC..Val.)
+
+sinnuccontentn = aggregate(list(data$NeutralA,data$NeutralT,data$NeutralG,data$NeutralC), by = list(data$Species, data$Class), FUN = sum)
+names(sinnuccontentn) = c('Species', 'Class', 'NeutralA','NeutralT','NeutralG','NeutralC')
+sinnuccontentn$FrA = sinnuccontentn$NeutralA / (sinnuccontentn$NeutralA + sinnuccontentn$NeutralT + sinnuccontentn$NeutralG + sinnuccontentn$NeutralC)
+sinnuccontentn$FrT = sinnuccontentn$NeutralT / (sinnuccontentn$NeutralA + sinnuccontentn$NeutralT + sinnuccontentn$NeutralG + sinnuccontentn$NeutralC) 
+sinnuccontentn$FrG = sinnuccontentn$NeutralG / (sinnuccontentn$NeutralA + sinnuccontentn$NeutralT + sinnuccontentn$NeutralG + sinnuccontentn$NeutralC) 
+sinnuccontentn$FrC = sinnuccontentn$NeutralC / (sinnuccontentn$NeutralA + sinnuccontentn$NeutralT + sinnuccontentn$NeutralG + sinnuccontentn$NeutralC) 
+sinnuccontentn$TGskew = (sinnuccontentn$FrT-sinnuccontentn$FrG)/(sinnuccontentn$FrG+sinnuccontentn$FrT)
+sinnuccontentn$Species = gsub(" ", "_", sinnuccontentn$Species)
+table(sinnuccontentn$Class)
+```
+
+# Reading whole genomes database and obtaining neutral nucleotide fractions in mitochondria
+```{r}
+sinnuccontentm = read.table("../data/2derived/AllGenesCodonUsageNoOverlap.txt", header = TRUE, sep = '\t')
+sinnuccontentm = sinnuccontentm[sinnuccontentm$Gene != 'ND6',]
+sinnuccontentm = aggregate(list(sinnuccontentm$NeutralA,sinnuccontentm$NeutralT,sinnuccontentm$NeutralG,sinnuccontentm$NeutralC), by = list(sinnuccontentm$Species), FUN = sum)
+names(sinnuccontentm) = c('Species','NeutralA','NeutralT','NeutralG','NeutralC')
+sinnuccontentm$FrT.heavy = sinnuccontentm$NeutralA / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC)
+sinnuccontentm$FrA.heavy = sinnuccontentm$NeutralT / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
+sinnuccontentm$FrC.heavy = sinnuccontentm$NeutralG / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
+sinnuccontentm$FrG.heavy = sinnuccontentm$NeutralC / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
+sinnuccontentm$GAskew.heavy = (sinnuccontentm$FrG.heavy - sinnuccontentm$FrA.heavy)/(sinnuccontentm$FrG.heavy + sinnuccontentm$FrA.heavy)
+
+```
+# Merging both tables of fractions and correlating skews
+```{r message=FALSE}
+merged_fr = merge(sinnuccontentm,sinnuccontentn, by="Species")
+cor.test(merded_fr$GAskew.heavy, merded_fr$TGskew, method = "spearman")
+```
+
+
+# Figures for nucleus
+```{r}
+ggviolin(sinnuccontentn, x = "Class", y = "FrT", select = c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), ylab = "FrT",
+         order=c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), add = "boxplot", fill="Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), yscale = "log2")
+ggviolin(sinnuccontentn, x = "Class", y = "FrG", select = c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), ylab = "FrG",
+         order=c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), add = "boxplot", fill="Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), yscale = "log2")
+ggviolin(sinnuccontentn, x = "Class", y = "TGskew", select = c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), ylab = "TGskew",
+         order=c("Actinopterygii", "Amphibia", "Reptiles", "Mammalia","Aves"), add = "boxplot", fill="Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"))
+
+```
