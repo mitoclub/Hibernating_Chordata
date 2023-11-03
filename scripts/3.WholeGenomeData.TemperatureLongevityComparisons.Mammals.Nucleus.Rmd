@@ -68,7 +68,7 @@ sinnuccontentm$FrA = sinnuccontentm$NeutralA / (sinnuccontentm$NeutralA + sinnuc
 sinnuccontentm$FrT = sinnuccontentm$NeutralT / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
 sinnuccontentm$FrG = sinnuccontentm$NeutralG / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
 sinnuccontentm$FrC = sinnuccontentm$NeutralC / (sinnuccontentm$NeutralA + sinnuccontentm$NeutralT + sinnuccontentm$NeutralG + sinnuccontentm$NeutralC) 
-sinnuccontentm$GAskew.heavy = (sinnuccontentm$FrA-sinnuccontentm$FrG)/(sinnuccontentm$FrA+sinnuccontentm$FrG)
+sinnuccontentm$GAskew.heavy = (sinnuccontentm$FrC-sinnuccontentm$FrT)/(sinnuccontentm$FrT+sinnuccontentm$FrC)
 
 table(sinnuccontentm$Class)
 ```
@@ -82,8 +82,9 @@ sinnuccontentmOUR$FrA = sinnuccontentmOUR$NeutralA / (sinnuccontentmOUR$NeutralA
 sinnuccontentmOUR$FrT= sinnuccontentmOUR$NeutralT / (sinnuccontentmOUR$NeutralA + sinnuccontentmOUR$NeutralT + sinnuccontentmOUR$NeutralG + sinnuccontentmOUR$NeutralC) 
 sinnuccontentmOUR$FrG = sinnuccontentmOUR$NeutralG / (sinnuccontentmOUR$NeutralA + sinnuccontentmOUR$NeutralT + sinnuccontentmOUR$NeutralG + sinnuccontentmOUR$NeutralC) 
 sinnuccontentmOUR$FrC = sinnuccontentmOUR$NeutralC / (sinnuccontentmOUR$NeutralA + sinnuccontentmOUR$NeutralT + sinnuccontentmOUR$NeutralG + sinnuccontentmOUR$NeutralC) 
-sinnuccontentmOUR$GAskew.heavy = (sinnuccontentmOUR$FrA-sinnuccontentmOUR$FrG)/(sinnuccontentmOUR$FrG+sinnuccontentmOUR$FrA)
+sinnuccontentmOUR$GAskew.heavy = (sinnuccontentmOUR$FrC-sinnuccontentmOUR$FrT)/(sinnuccontentmOUR$FrT+sinnuccontentmOUR$FrC)
 
+table(sinnuccontentm$Class)
 ###Adding taxa
 taxa = read.table("../data/2derived/TaxaFromKostya.txt", header = T)
 AA = read.table("../data/1raw/anage_data.txt", header = TRUE, sep = '\t')
