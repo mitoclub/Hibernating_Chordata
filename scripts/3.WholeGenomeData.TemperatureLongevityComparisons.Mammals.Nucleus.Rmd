@@ -1,5 +1,5 @@
 ---
-title: "Chordata Whole genomes data of nucleus"
+title: "Chordata Whole genomes data of nucleus in comparison with mitochondria"
 author: "Alina G. Mikhailova"
 date: "2023-11-2"
 output:    
@@ -84,7 +84,7 @@ sinnuccontentmOUR$FrG = sinnuccontentmOUR$NeutralG / (sinnuccontentmOUR$NeutralA
 sinnuccontentmOUR$FrC = sinnuccontentmOUR$NeutralC / (sinnuccontentmOUR$NeutralA + sinnuccontentmOUR$NeutralT + sinnuccontentmOUR$NeutralG + sinnuccontentmOUR$NeutralC) 
 sinnuccontentmOUR$GAskew.heavy = (sinnuccontentmOUR$FrC-sinnuccontentmOUR$FrT)/(sinnuccontentmOUR$FrT+sinnuccontentmOUR$FrC)
 
-table(sinnuccontentm$Class)
+table(sinnuccontentmOUR$Class)
 ###Adding taxa
 taxa = read.table("../data/2derived/TaxaFromKostya.txt", header = T)
 AA = read.table("../data/1raw/anage_data.txt", header = TRUE, sep = '\t')
@@ -156,5 +156,62 @@ ggviolin(sinnuccontentmOUR, x = "Class", y = "GAskew.heavy", select = c("Actinop
 colder <- c("Actinopterygii", "Amphibia", "Reptilia")
 warmer <- c("Mammalia","Aves")
 wilcox.test(sinnuccontentmOUR[sinnuccontentmOUR$Class %in% colder,]$GAskew.heavy, sinnuccontentmOUR[sinnuccontentmOUR$Class %in% warmer,]$GAskew.heavy, paired=F) 
+
+```
+
+
+# Exploring Amphybians
+```{r}
+data = read.csv("../data/1raw/Nuclear_codon_usage.csv"); data$Species = gsub(" ", "_", data$Species) #data[data$Class == "Amphibia",]
+
+colnames(data)
+data = data %>% mutate(sum = rowSums(across(where(is.numeric)), na.rm=TRUE))
+data = data %>% mutate(sum_pro = rowSums(across(c("CCA..Pro.", "CCC..Pro.", "CCG..Pro.", "CCT..Pro."))))
+data = data %>% mutate(sum_phe = rowSums(across(c("TTT..Phe.", "TTC..Phe."))))
+data = data %>% mutate(sum_lys = rowSums(across(c("AAA..Lys.", "AAG..Lys."))))
+data = data %>% mutate(sum_gly = rowSums(across(c("GGA..Gly.","GGC..Gly.", "GGG..Gly.", "GGT..Gly."))))
+data = data %>% mutate(sum_leu = rowSums(across(c("TTA..Leu." , "TTG..Leu."))))
+data = data %>% mutate(sum_asn = rowSums(across(c("AAC..Asn.",  "AAT..Asn."))))
+data$pro_frac = data$sum_pro/data$sum
+data$phe_frac = data$sum_phe/data$sum
+data$leu_frac = data$sum_leu/data$sum
+data$gly_frac = data$sum_gly/data$sum
+data$lys_frac = data$sum_lys/data$sum
+data$asn_frac = data$sum_asn/data$sum
+
+ggboxplot(data, x = "Class", y = "pro_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+ggboxplot(data, x = "Class", y = "phe_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+ggboxplot(data, x = "Class", y = "leu_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+ggboxplot(data, x = "Class", y = "gly_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+ggboxplot(data, x = "Class", y = "lys_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+ggboxplot(data, x = "Class", y = "asn_frac",
+                color = "Class", palette=c("#6760db", "#7849bf", "#9145c4", "#c73a69", "#c2464c"), order=c("Actinopterygii", "Amphibia", "Reptilia", "Mammalia","Aves"),
+                add = "jitter", shape = "Class")
+```
+
+# Exploring Actinopterygii
+```{r}
+tm = read.table('../Data/1raw/FishBaseTemperature.txt', header=T)
+tm = tm %>% group_by(Species) %>% summarise(temperature = median(Temperature))
+temp=merge(sinnuccontentn, tm)
+cor.test(temp$temperature, temp$meanTGACskew, method = "spearman")
+
+f=ggscatter(temp, x = "temperature", y = "meanTGACskew",
+          color = "#eb4034", # Points color, shape and size
+          add = "reg.line",  # Add regressin line
+          add.params = list(color = "black", fill = "lightgray"), # Customize reg. line
+          conf.int = TRUE, # Add confidence interval
+          xlab="Mean annual water temperature, ?C")
+f
 
 ```
